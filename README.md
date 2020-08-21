@@ -16,24 +16,24 @@ import (
 )
 
 func main() {
-	var opts []grpc.DialOption
+	var options []grpc.DialOption
 	// Use TLS and verify the server certificate
-	opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})))
-	opts = append(opts, grpc.FailOnNonTempDialError(true))
+	options = append(options, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})))
+	options = append(options, grpc.FailOnNonTempDialError(true))
 	// Dial to your account's api at {your-account-uuid}.api.swarmiolabs.com:8080
-	conn, err := grpc.Dial("b7c65359-559d-492e-b9f1-e6b344ceec5d.api.swarmiolabs.com:8080", opts...)
+	connection, err := grpc.Dial("b7c65359-559d-492e-b9f1-e6b344ceec5d.api.swarmiolabs.com:8080", options...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	} else {
-		defer conn.Close()
-		// Create a client
-		client := messages.NewMessagesClient(conn)
-		ctx := context.Background()
+		defer connection.Close()
+		// Create a messagesClient
+		messagesClient := messages.NewMessagesClient(connection)
+		publishContext := context.Background()
 		// Add an api key to the context for authentication.
-		ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", "9cb10288-8006-4092-b32f-8dc7d9c358f7")
-		// Use the client to subscribe to a pipeline, this example specifies a group for horizontal scalability
-		result, err := client.PublishMessage(
-			ctx,
+		publishContext = metadata.AppendToOutgoingContext(publishContext, "x-api-key", "9cb10288-8006-4092-b32f-8dc7d9c358f7")
+		// Use the messagesClient to subscribe to a pipeline, this example specifies a group for horizontal scalability
+		result, err := messagesClient.PublishMessage(
+			publishContext,
 			&messages.PublishMessageParameters{
 				PipelineId: "pipeline-33abca88-eab5-4b29-9558-5269dcbd10b1",
 				Message:    []byte(`{"fieldOne": 1, "fieldTwo": "two"}`)},
@@ -64,28 +64,28 @@ import (
 )
 
 func main() {
-	var opts []grpc.DialOption
+	var options []grpc.DialOption
 	// Use TLS and verify the server certificate
-	opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})))
-	opts = append(opts, grpc.FailOnNonTempDialError(true))
+	options = append(options, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: false})))
+	options = append(options, grpc.FailOnNonTempDialError(true))
 	// Connect to your account's api at {your-account-uuid}.api.swarmiolabs.com:8080
-	conn, err := grpc.Dial("b7c65359-559d-492e-b9f1-e6b344ceec5d.api.swarmiolabs.com:8080", opts...)
+	connection, err := grpc.Dial("b7c65359-559d-492e-b9f1-e6b344ceec5d.api.swarmiolabs.com:8080", options...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	} else {
-		defer conn.Close()
-		// Create a client
-		client := messages.NewMessagesClient(conn)
-		ctx := context.Background()
+		defer connection.Close()
+		// Create a messagesClient
+		messagesClient := messages.NewMessagesClient(connection)
+		subscribeContext := context.Background()
 		// Add an api key to the context for authentication.
-		ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", "9cb10288-8006-4092-b32f-8dc7d9c358f7")
-		// Use the client to subscribe to a pipeline, this example specifies a group for horizontal scalability
-		stream, err := client.Subscribe(ctx, &messages.SubscribeParameters{
+		subscribeContext = metadata.AppendToOutgoingContext(subscribeContext, "x-api-key", "9cb10288-8006-4092-b32f-8dc7d9c358f7")
+		// Use the messagesClient to subscribe to a pipeline, this example specifies a group for horizontal scalability
+		stream, err := messagesClient.Subscribe(subscribeContext, &messages.SubscribeParameters{
 			PipelineId: "pipeline-33abca88-eab5-4b29-9558-5269dcbd10b1",
-			GroupName: "my-subscriber",
+			GroupName: "my-subscriber-group",
 		})
 		if err != nil {
-			log.Fatalf("%v.Subscribe(_) = _, %v", client, err)
+			log.Fatalf("%v.Subscribe(_) = _, %v", messagesClient, err)
 		} else {
 			// Loop through the stream until it's closed.
 			for {
@@ -93,7 +93,7 @@ func main() {
 				if err == io.EOF {
 					break
 				} else if err != nil {
-					log.Fatalf("%v.Subscribe(_) = _, %v", client, err)
+					log.Fatalf("%v.Subscribe(_) = _, %v", messagesClient, err)
 				} else {
 					log.Printf("Received message: %s", string(message.Data))
 				}
